@@ -61,6 +61,24 @@ export const caregiverApiSlice = apiSlice.injectEndpoints({
       query: () => "/caregivers/reviews/me",
       providesTags: ["Review"],
     }),
+
+    // ── Medication Tracking ─────────────────────────────────────────
+    getPendingMedications: builder.query({
+      query: () => "/medications/pending",
+      providesTags: ["Medication"],
+    }),
+    getMedicationHistory: builder.query({
+      query: (patientId) => `/medications/patient/${patientId}`,
+      providesTags: ["Medication"],
+    }),
+    logMedication: builder.mutation({
+      query: (data) => ({
+        url: "/medications/log",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Medication"],
+    }),
   }),
 });
 
@@ -74,4 +92,7 @@ export const {
   useGetCaregiverEarningsQuery,
   useGetMyReviewsQuery,
   useAddCaregiverByAgencyMutation,
+  useGetPendingMedicationsQuery,
+  useGetMedicationHistoryQuery,
+  useLogMedicationMutation,
 } = caregiverApiSlice;

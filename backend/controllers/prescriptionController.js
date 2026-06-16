@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const Prescription = require('../models/Prescription');
 const User = require('../models/User');
+const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const Hospital = require('../models/Hospital');
 const { successResponse, paginatedResponse } = require('../utils/responseHandler');
@@ -79,7 +80,6 @@ const updatePrescription = asyncHandler(async (req, res) => {
 const getPatientPrescriptions = asyncHandler(async (req, res) => {
 
   let { patientId } = req.params;
-console.log(req.params)
   const { status } = req.query;
 
   // Resolve 'me' alias
@@ -87,16 +87,32 @@ console.log(req.params)
     patientId = req.user._id;
   }
 
-  const patient = await User.findById(patientId);
+  let patient = await Patient.findById(patientId);
+  if (!patient) {
+    patient = await Patient.findOne({ user: patientId });
+  }
 
   if (!patient) {
-    res.status(404);
-    throw new Error('Patient not found');
+    const userExists = await User.findById(patientId);
+    if (!userExists) {
+      res.status(404);
+      throw new Error('Patient not found');
+    }
+    patient = {
+      _id: null,
+      user: userExists._id,
+      name: userExists.name,
+      assignedCaregiver: userExists.assignedCaregiver,
+      assignedHospital: userExists.assignedHospital,
+    };
   }
+
+  const patientUserId = patient.user?._id || patient.user;
+  const patientDocId = patient._id;
 
   // Access Control
   const isAdmin = req.user.role === 'admin';
-  const isOwner = String(patient._id) === String(req.user._id);
+  const isOwner = String(patientUserId) === String(req.user._id);
   const isDoctor = req.user.role === 'doctor';
   
   let isCaregiver = false;
@@ -109,7 +125,13 @@ console.log(req.params)
   let isFamily = false;
   if (req.user.role === 'family') {
     const FamilyMember = require('../models/FamilyMember');
-    const fm = await FamilyMember.findOne({ user: req.user._id, patient: patientId, canReceiveHealthReports: true });
+    const orQuery = [{ patient: patientUserId }];
+    if (patientDocId) orQuery.push({ patient: patientDocId });
+    const fm = await FamilyMember.findOne({
+      user: req.user._id,
+      $or: orQuery,
+      canReceiveHealthReports: true,
+    });
     if (fm) isFamily = true;
   }
 
@@ -124,7 +146,7 @@ console.log(req.params)
     throw new Error('Access denied to patient prescriptions');
   }
 
-  const filter = { patient: patientId };
+  const filter = { patient: patientUserId };
   if (status) filter.status = status;
 
   const { docs, pagination } = await paginate(Prescription, filter, {

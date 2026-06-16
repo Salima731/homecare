@@ -82,10 +82,10 @@ const AdminUsers = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center font-bold text-primary-700">
-                          {u.name[0]}
+                          {u.name ? u.name[0] : 'U'}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-[var(--text-main)] group-hover:text-primary-600 transition-colors">{u.name}</p>
+                          <p className="text-sm font-bold text-[var(--text-main)] group-hover:text-primary-600 transition-colors">{u.name || 'Unnamed User'}</p>
                           <p className="text-xs text-[var(--text-muted)]">{u.email}</p>
                         </div>
                       </div>

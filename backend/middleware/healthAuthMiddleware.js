@@ -7,6 +7,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const Booking = require("../models/Booking");
 const Caregiver = require("../models/Caregiver");
 const User = require("../models/User");
+const Patient = require("../models/Patient");
 
 const getPatientId = (req) => req.params?.patientId || req.body?.patientId;
 
@@ -22,8 +23,18 @@ const verifyCaregiverBooking = asyncHandler(async (req, res, next) => {
     throw new Error("patientId is required");
   }
 
-  const patient = await User.findById(patientId);
-  if (!patient) {
+  // Unified lookup: check User collection and Patient collection
+  let userDoc = await User.findById(patientId);
+  let patientDoc = await Patient.findOne({ user: patientId });
+
+  if (!userDoc) {
+    patientDoc = await Patient.findById(patientId);
+    if (patientDoc) {
+      userDoc = await User.findById(patientDoc.user);
+    }
+  }
+
+  if (!userDoc) {
     res.status(404);
     throw new Error("Patient not found");
   }
@@ -39,12 +50,11 @@ const verifyCaregiverBooking = asyncHandler(async (req, res, next) => {
     throw new Error("Caregiver profile not found");
   }
 
-  // Check for active booking with this patient
-  // Must be assigned/ongoing and within date range.
+  // Check for active booking with this patient (Booking.user references User ID)
   const now = new Date();
   const activeBooking = await Booking.findOne({
     caregiver: caregiver._id,
-    user: patient._id,
+    user: userDoc._id,
     status: { $in: ["assigned", "ongoing"] },
     startDate: { $lte: now },
     endDate: { $gte: now },
@@ -61,7 +71,7 @@ const verifyCaregiverBooking = asyncHandler(async (req, res, next) => {
   req.health = {
     caregiverId: caregiver._id,
     bookingId: activeBooking._id,
-    patientId,
+    patientId: userDoc._id,
   };
 
   next();
@@ -79,14 +89,28 @@ const canViewPatientHealth = asyncHandler(async (req, res, next) => {
     throw new Error("patientId is required");
   }
 
-  const patient = await User.findById(patientId);
-  if (!patient) {
+  // Unified lookup
+  let userDoc = await User.findById(patientId);
+  let patientDoc = await Patient.findOne({ user: patientId });
+
+  if (!userDoc) {
+    patientDoc = await Patient.findById(patientId);
+    if (patientDoc) {
+      userDoc = await User.findById(patientDoc.user);
+    }
+  }
+
+  if (!userDoc) {
     res.status(404);
     throw new Error("Patient not found");
   }
 
+  const userId = userDoc._id;
+  const profileId = patientDoc?._id;
+  const assignedHospitalId = patientDoc?.assignedHospital || userDoc.assignedHospital;
+
   const isAdmin = req.user.role === "admin";
-  const isPatientOwner = String(patient._id) === String(req.user._id);
+  const isPatientOwner = String(userId) === String(req.user._id);
   const isDoctor = req.user.role === "doctor";
 
   // Check family permission
@@ -95,7 +119,10 @@ const canViewPatientHealth = asyncHandler(async (req, res, next) => {
     const FamilyMember = require("../models/FamilyMember");
     const fm = await FamilyMember.findOne({
       user: req.user._id,
-      patient: patientId,
+      $or: [
+        { patient: userId },
+        ...(profileId ? [{ patient: profileId }] : [])
+      ],
       canReceiveHealthReports: true,
     });
     isFamilyAuthorized = !!fm;
@@ -107,7 +134,7 @@ const canViewPatientHealth = asyncHandler(async (req, res, next) => {
     const Hospital = require("../models/Hospital");
     const hospital = await Hospital.findOne({ user: req.user._id });
     isHospitalAuthorized =
-      hospital && String(patient.assignedHospital) === String(hospital._id);
+      hospital && assignedHospitalId && String(assignedHospitalId) === String(hospital._id);
   }
 
   // Check caregiver with active booking
@@ -118,7 +145,7 @@ const canViewPatientHealth = asyncHandler(async (req, res, next) => {
       const now = new Date();
       const activeBooking = await Booking.findOne({
         caregiver: caregiver._id,
-        user: patient._id,
+        user: userId,
         status: { $in: ["assigned", "ongoing"] },
         startDate: { $lte: now },
         endDate: { $gte: now },
@@ -146,6 +173,7 @@ const canViewPatientHealth = asyncHandler(async (req, res, next) => {
     isFamily: isFamilyAuthorized,
     isHospital: isHospitalAuthorized,
     isCaregiver: isCaregiverAuthorized,
+    patientUserId: userId,
   };
 
   next();
@@ -162,12 +190,25 @@ const canCreateHealthLog = asyncHandler(async (req, res, next) => {
     throw new Error("patientId is required");
   }
 
+  // Unified lookup
+  let userDoc = await User.findById(patientId);
+  let patientDoc = await Patient.findOne({ user: patientId });
+
+  if (!userDoc) {
+    patientDoc = await Patient.findById(patientId);
+    if (patientDoc) {
+      userDoc = await User.findById(patientDoc.user);
+    }
+  }
+
+  if (!userDoc) {
+    res.status(404);
+    throw new Error("Patient not found");
+  }
+
+  const userId = userDoc._id;
   const isAdmin = req.user.role === "admin";
-  const isPatientOwner = (async () => {
-    const User = require("../models/User");
-    const patient = await User.findById(patientId);
-    return patient && String(patient._id) === String(req.user._id);
-  })();
+  const isPatientOwner = String(userId) === String(req.user._id);
 
   // Caregiver must have active booking
   if (req.user.role === "caregiver") {
@@ -180,7 +221,7 @@ const canCreateHealthLog = asyncHandler(async (req, res, next) => {
   }
 
   // Patient owner can log own data
-  if (await isPatientOwner) {
+  if (isPatientOwner) {
     return next();
   }
 

@@ -35,6 +35,8 @@ const FindDoctors = lazy(() => import('../pages/dashboard/user/doctors/FindDocto
 const DoctorPublicProfile = lazy(() => import('../pages/dashboard/user/doctors/DoctorPublicProfile'));
 const UserAppointments = lazy(() => import('../pages/dashboard/user/appointments/UserAppointments'));
 const UserPrescriptions = lazy(() => import('../pages/dashboard/user/prescriptions/UserPrescriptions'));
+const UserHealthTracking = lazy(() => import('../pages/dashboard/user/LogVitals'));
+
 const AgencyDashboard = lazy(() => import('../pages/dashboard/agency/AgencyDashboard'));
 const AgencyCaregivers = lazy(() => import('../pages/dashboard/agency/AgencyCaregivers'));
 const CaregiverAdd = lazy(() => import('../pages/dashboard/agency/CaregiverAdd'));
@@ -51,6 +53,8 @@ const CaregiverSettings = lazy(() => import('../pages/dashboard/caregiver/Caregi
 const CaregiverSetup = lazy(() => import('../pages/dashboard/caregiver/CaregiverSetup'));
 const CaregiverHealthDashboard = lazy(() => import('../pages/dashboard/caregiver/CaregiverHealthDashboard'));
 const CaregiverPrescriptions = lazy(() => import('../pages/dashboard/caregiver/CaregiverPrescriptions'));
+const CaregiverDailyReport = lazy(() => import('../pages/dashboard/caregiver/CaregiverDailyReport'));
+const CaregiverMedications = lazy(() => import('../pages/dashboard/caregiver/CaregiverMedications'));
 const AdminDashboard = lazy(() => import('../pages/dashboard/admin/AdminDashboard'));
 const AdminUsers = lazy(() => import('../pages/dashboard/admin/AdminUsers'));
 const AdminAgencies = lazy(() => import('../pages/dashboard/admin/AdminAgencies'));
@@ -72,6 +76,7 @@ const DoctorAppointments = lazy(() => import('../pages/dashboard/doctor/appointm
 const DoctorPatients = lazy(() => import('../pages/dashboard/doctor/patients/DoctorPatients'));
 const DoctorPrescriptions = lazy(() => import('../pages/dashboard/doctor/prescriptions/DoctorPrescriptions'));
 const DoctorSettings = lazy(() => import('../pages/dashboard/doctor/settings/DoctorSettings'));
+const DoctorSchedules = lazy(() => import('../pages/dashboard/doctor/schedules/DoctorSchedules'));
 const DoctorPatientDetail = lazy(() => import('../pages/dashboard/hospital/patients/PatientDetail'));
 const HospitalDashboard = lazy(() => import('../pages/dashboard/hospital/HospitalDashboard'));
 const HospitalDepartments = lazy(() => import('../pages/dashboard/hospital/departments/DepartmentsList'));
@@ -83,6 +88,7 @@ const HospitalPatientDetail = lazy(() => import('../pages/dashboard/hospital/pat
 const HospitalReferrals = lazy(() => import('../pages/dashboard/hospital/referrals/ReferralsList'));
 const HospitalEmergencies = lazy(() => import('../pages/dashboard/hospital/emergencies/EmergencyList'));
 const HospitalProfile = lazy(() => import('../pages/dashboard/hospital/profile/HospitalProfile'));
+const HospitalAgencies = lazy(() => import('../pages/dashboard/hospital/agencies/HospitalAgencies'));
 const HospitalSettings = lazy(() => import('../pages/dashboard/hospital/settings/HospitalSettings'));
 const FamilyDashboard = lazy(() => import('../pages/dashboard/family/FamilyDashboard'));
 const FamilyPatient = lazy(() => import('../pages/dashboard/family/FamilyPatient'));
@@ -91,6 +97,15 @@ const FamilyMedications = lazy(() => import('../pages/dashboard/family/FamilyMed
 const FamilyAttendance = lazy(() => import('../pages/dashboard/family/FamilyAttendance'));
 const FamilyBookings = lazy(() => import('../pages/dashboard/family/FamilyBookings'));
 const FamilyEmergencies = lazy(() => import('../pages/dashboard/family/FamilyEmergencies'));
+const FamilyReports = lazy(() => import('../pages/dashboard/family/FamilyReports'));
+const FamilySettings = lazy(() => import('../pages/dashboard/family/FamilySettings'));
+
+// Common Shared Pages
+const MedicalRecordsDashboard = lazy(() => import('../pages/dashboard/common/MedicalRecordsDashboard'));
+const UploadMedicalRecord = lazy(() => import('../pages/dashboard/common/UploadMedicalRecord'));
+const MedicalRecordDetail = lazy(() => import('../pages/dashboard/common/MedicalRecordDetail'));
+const EmergencyAlertsDashboard = lazy(() => import('../pages/dashboard/common/EmergencyAlertsDashboard'));
+const EmergencyAlertDetail = lazy(() => import('../pages/dashboard/common/EmergencyAlertDetail'));
 
 // Common Pages
 const NotFound = lazy(() => import('../pages/NotFound'));
@@ -143,6 +158,11 @@ const AppRoutes = () => {
           <Route path="payments" element={<UserPayments />} />
           <Route path="complaints" element={<UserComplaints />} />
           <Route path="messages" element={<Messages />} />
+          <Route path="medical-records" element={<MedicalRecordsDashboard />} />
+          <Route path="medical-records/upload" element={<UploadMedicalRecord />} />
+          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
+          <Route path="emergency-alerts" element={<EmergencyAlertsDashboard />} />
+          <Route path="emergency-alerts/:id" element={<EmergencyAlertDetail />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<UserSettings />} />
           <Route path="notifications" element={<NotificationPage />} />
@@ -150,6 +170,7 @@ const AppRoutes = () => {
           <Route path="doctors/:id" element={<DoctorPublicProfile />} />
           <Route path="appointments" element={<UserAppointments />} />
           <Route path="prescriptions" element={<UserPrescriptions />} />
+          <Route path="health" element={<UserHealthTracking />} />
         </Route>
 
         {/* Agency Dashboard Routes */}
@@ -172,6 +193,11 @@ const AppRoutes = () => {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<AgencySettings />} />
           <Route path="notifications" element={<NotificationPage />} />
+          <Route path="medical-records" element={<MedicalRecordsDashboard />} />
+          <Route path="medical-records/upload" element={<UploadMedicalRecord />} />
+          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
+          <Route path="emergency-alerts" element={<EmergencyAlertsDashboard />} />
+          <Route path="emergency-alerts/:id" element={<EmergencyAlertDetail />} />
         </Route>
 
         {/* Caregiver Dashboard Routes */}
@@ -194,6 +220,13 @@ const AppRoutes = () => {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<CaregiverSettings />} />
           <Route path="notifications" element={<NotificationPage />} />
+          <Route path="care-reports" element={<CaregiverDailyReport />} />
+          <Route path="medications" element={<CaregiverMedications />} />
+          <Route path="medical-records" element={<MedicalRecordsDashboard />} />
+          <Route path="medical-records/upload" element={<UploadMedicalRecord />} />
+          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
+          <Route path="emergency-alerts" element={<EmergencyAlertsDashboard />} />
+          <Route path="emergency-alerts/:id" element={<EmergencyAlertDetail />} />
         </Route>
 
         {/* Admin Dashboard Routes */}
@@ -218,6 +251,11 @@ const AppRoutes = () => {
           <Route path="payments" element={<AdminPayments />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="medical-records" element={<MedicalRecordsDashboard />} />
+          <Route path="medical-records/upload" element={<UploadMedicalRecord />} />
+          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
+          <Route path="emergency-alerts" element={<EmergencyAlertsDashboard />} />
+          <Route path="emergency-alerts/:id" element={<EmergencyAlertDetail />} />
         </Route>
 
 
@@ -237,7 +275,11 @@ const AppRoutes = () => {
           <Route path="patients/:id" element={<DoctorPatientDetail />} />
           <Route path="prescriptions" element={<DoctorPrescriptions />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="schedules" element={<DoctorSchedules />} />
           <Route path="settings" element={<DoctorSettings />} />
+          <Route path="medical-records" element={<MedicalRecordsDashboard />} />
+          <Route path="medical-records/upload" element={<UploadMedicalRecord />} />
+          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
         </Route>
 
         {/* Hospital Dashboard Routes */}
@@ -256,10 +298,16 @@ const AppRoutes = () => {
           <Route path="prescriptions" element={<HospitalPrescriptions />} />
           <Route path="patients" element={<HospitalPatients />} />
           <Route path="patients/:id" element={<HospitalPatientDetail />} />
+          <Route path="agencies" element={<HospitalAgencies />} />
           <Route path="referrals" element={<HospitalReferrals />} />
           <Route path="emergencies" element={<HospitalEmergencies />} />
           <Route path="profile" element={<HospitalProfile />} />
           <Route path="settings" element={<HospitalSettings />} />
+          <Route path="medical-records" element={<MedicalRecordsDashboard />} />
+          <Route path="medical-records/upload" element={<UploadMedicalRecord />} />
+          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
+          <Route path="emergency-alerts" element={<EmergencyAlertsDashboard />} />
+          <Route path="emergency-alerts/:id" element={<EmergencyAlertDetail />} />
         </Route>
 
         <Route
@@ -277,9 +325,15 @@ const AppRoutes = () => {
           <Route path="attendance" element={<FamilyAttendance />} />
           <Route path="bookings" element={<FamilyBookings />} />
           <Route path="emergencies" element={<FamilyEmergencies />} />
+          <Route path="care-reports" element={<FamilyReports />} />
+          <Route path="medical-records" element={<MedicalRecordsDashboard />} />
+          <Route path="medical-records/upload" element={<UploadMedicalRecord />} />
+          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
+          <Route path="emergency-alerts" element={<EmergencyAlertsDashboard />} />
+          <Route path="emergency-alerts/:id" element={<EmergencyAlertDetail />} />
           <Route path="messages" element={<Messages />} />
           <Route path="profile" element={<ProfilePage />} />
-          <Route path="settings" element={<PlaceholderPage />} />
+          <Route path="settings" element={<FamilySettings />} />
         </Route>
 
         {/* Redirect /dashboard to the correct sub-dashboard */}

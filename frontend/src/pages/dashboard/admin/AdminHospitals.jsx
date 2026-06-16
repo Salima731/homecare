@@ -175,28 +175,33 @@ const AdminHospitals = () => {
 
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() =>
-                            handleStatusUpdate(
-                              hospital._id,
-                              hospital.status
-                            )
-                          }
-                          className="btn btn-sm"
-                        >
-                          {hospital.status ===
-                          'approved' ? (
-                            <>
-                              <Ban size={16} />
-                              Suspend
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck size={16} />
-                              Approve
-                            </>
-                          )}
-                        </button>
+                        {hospital.status === 'approved' ? (
+                          <button
+                            onClick={() =>
+                              handleStatusUpdate(
+                                hospital._id,
+                                hospital.status
+                              )
+                            }
+                            className="btn btn-sm border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm font-bold text-xs py-1.5 px-3 rounded-lg"
+                          >
+                            <Ban size={14} />
+                            <span>Suspend</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              handleStatusUpdate(
+                                hospital._id,
+                                hospital.status
+                              )
+                            }
+                            className="btn btn-sm border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm font-bold text-xs py-1.5 px-3 rounded-lg"
+                          >
+                            <UserCheck size={14} />
+                            <span>Approve</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

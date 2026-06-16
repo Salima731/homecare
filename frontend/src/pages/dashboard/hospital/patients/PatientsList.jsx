@@ -19,7 +19,7 @@ const PatientsList = () => {
   const patients = response?.data || [];
 
   const filteredPatients = patients.filter(p => 
-    p.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.patientId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p._id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -98,11 +98,11 @@ const PatientsList = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary-600/20 text-primary-600 flex items-center justify-center font-bold">
-                            {patient.user?.name?.charAt(0) || 'P'}
+                            {patient.name?.charAt(0) || 'P'}
                           </div>
                           <div>
-                            <p className="font-bold text-[var(--text-main)] text-sm">{patient.user?.name || 'Unknown'}</p>
-                            <p className="text-xs text-[var(--text-muted)]">{patient.user?.email || 'No email provided'}</p>
+                            <p className="font-bold text-[var(--text-main)] text-sm">{patient.name || 'Unknown'}</p>
+                            <p className="text-xs text-[var(--text-muted)]">{patient.email || 'No email provided'}</p>
                           </div>
                         </div>
                       </td>
@@ -203,8 +203,8 @@ const PatientsList = () => {
                         <div>
                           <p className="font-bold text-[var(--text-main)]">{patient.name}</p>
                           <div className="flex gap-3 text-xs text-[var(--text-muted)] mt-1">
-                            {patient.userInfo?.email && <span>{patient.userInfo.email}</span>}
-                            {patient.userInfo?.phone && <span>• {patient.userInfo.phone}</span>}
+                            {patient.email && <span>{patient.email}</span>}
+                            {patient.phone && <span>• {patient.phone}</span>}
                           </div>
                           <div className="flex gap-2 mt-2">
                             {patient.gender && <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-gray-500/10 text-gray-500">{patient.gender}</span>}

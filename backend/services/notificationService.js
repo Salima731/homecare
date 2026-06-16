@@ -144,6 +144,60 @@ const notifications = {
       message: `You have a new message from ${senderName}`,
       data: {},
     }),
+
+  careReportSubmitted: (io, userId, reportId) =>
+    createNotification(io, {
+      recipient: userId,
+      type: 'care_report_submitted',
+      title: 'New Care Report',
+      message: 'Your caregiver has submitted a daily care report.',
+      data: { reportId },
+    }, 'healthAlerts'),
+
+  careReportUpdated: (io, userId, reportId) =>
+    createNotification(io, {
+      recipient: userId,
+      type: 'care_report_updated',
+      title: 'Care Report Updated',
+      message: 'A care report for your patient has been updated.',
+      data: { reportId },
+    }, 'healthAlerts'),
+
+  medicalRecordUploaded: (io, userId, recordId) =>
+    createNotification(io, {
+      recipient: userId,
+      type: 'medical_record_uploaded',
+      title: 'New Medical Record',
+      message: 'A new medical record has been added to your profile.',
+      data: { recordId },
+    }, 'healthAlerts'),
+
+  medicalRecordUpdated: (io, userId, recordId) =>
+    createNotification(io, {
+      recipient: userId,
+      type: 'medical_record_updated',
+      title: 'Medical Record Updated',
+      message: 'A medical record in your profile has been updated.',
+      data: { recordId },
+    }, 'healthAlerts'),
+
+  emergencyAlertRaised: (io, userId, alertId, severityLevel, alertType) =>
+    createNotification(io, {
+      recipient: userId,
+      type: 'emergency_alert_raised',
+      title: `EMERGENCY ALERT: ${severityLevel}`,
+      message: `An emergency alert (${alertType}) has been raised. Immediate attention required.`,
+      data: { alertId },
+    }, 'healthAlerts'),
+
+  emergencyAlertResolved: (io, userId, alertId) =>
+    createNotification(io, {
+      recipient: userId,
+      type: 'emergency_alert_resolved',
+      title: 'Emergency Alert Resolved',
+      message: 'The emergency alert has been resolved.',
+      data: { alertId },
+    }, 'healthAlerts'),
 };
 
 module.exports = { createNotification, notifyMany, notifications };

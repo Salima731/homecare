@@ -2,6 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const HealthLog = require("../models/HealthLog");
 const HealthProfile = require("../models/HealthProfile");
 const Patient = require("../models/Patient");
+const User = require("../models/User");
 const Caregiver = require("../models/Caregiver");
 const Booking = require("../models/Booking");
 const FamilyMember = require("../models/FamilyMember");
@@ -158,9 +159,11 @@ const getHealthAccess = async (req, patient) => {
 
   let isFamily = false;
   if (req.user.role === "family") {
+    const orQuery = [{ patient: patient._id }];
+    if (patient.user) orQuery.push({ patient: patient.user });
     const fm = await FamilyMember.findOne({
       user: req.user._id,
-      patient: patient._id,
+      $or: orQuery,
       canReceiveHealthReports: true,
     });
     isFamily = !!fm;
@@ -206,15 +209,29 @@ const createHealthLog = asyncHandler(async (req, res) => {
     throw new Error("patientId is required");
   }
 
-  const patient = await Patient.findById(patientId);
+  let patient = await Patient.findById(patientId);
   if (!patient) {
-    res.status(404);
-    throw new Error("Patient not found");
+    patient = await Patient.findOne({ user: patientId });
   }
+
+  if (!patient) {
+    const userExists = await User.findById(patientId);
+    if (!userExists) {
+      res.status(404);
+      throw new Error("Patient not found");
+    }
+    patient = {
+      _id: null,
+      user: userExists._id,
+      name: userExists.name,
+    };
+  }
+
+  const patientUserId = patient.user?._id || patient.user;
 
   // Authorization
   const isAdmin = req.user.role === "admin";
-  const isPatientOwner = String(patient.user) === String(req.user._id);
+  const isPatientOwner = String(patientUserId) === String(req.user._id);
 
   let caregiverId = req.health?.caregiverId;
   let actualBookingId = req.health?.bookingId || bookingId;
@@ -251,7 +268,7 @@ const createHealthLog = asyncHandler(async (req, res) => {
   const isAbnormal = detectAbnormal(processedVitals);
 
   const log = await HealthLog.create({
-    patient: patientId,
+    patient: patientUserId,
     caregiver: caregiverId || undefined,
     booking: actualBookingId || undefined,
     logDate: logDate ? new Date(logDate) : new Date(),
@@ -293,22 +310,39 @@ const getPatientLogs = asyncHandler(async (req, res) => {
   const { patientId } = req.params;
   const { startDate, endDate, isAbnormal, sortBy } = req.query;
 
-  const patient = await Patient.findById(patientId);
+  let patient = await Patient.findById(patientId);
   if (!patient) {
-    res.status(404);
-    throw new Error("Patient not found");
+    patient = await Patient.findOne({ user: patientId });
   }
+
+  if (!patient) {
+    const userExists = await User.findById(patientId);
+    if (!userExists) {
+      res.status(404);
+      throw new Error("Patient not found");
+    }
+    patient = {
+      _id: null,
+      user: userExists._id,
+      name: userExists.name,
+    };
+  }
+
+  const patientUserId = patient.user?._id || patient.user;
 
   // Access control
   const isAdmin = req.user.role === "admin";
-  const isOwner = String(patient.user) === String(req.user._id);
+  const isOwner = String(patientUserId) === String(req.user._id);
   const isDoctor = req.user.role === "doctor";
 
   let isFamilyAuthorized = false;
   if (req.user.role === "family") {
+    const patientDocId = patient._id;
+    const orQuery = [{ patient: patientUserId }];
+    if (patientDocId) orQuery.push({ patient: patientDocId });
     const fm = await FamilyMember.findOne({
       user: req.user._id,
-      patient: patientId,
+      $or: orQuery,
       canReceiveHealthReports: true,
     });
     isFamilyAuthorized = !!fm;
@@ -321,7 +355,7 @@ const getPatientLogs = asyncHandler(async (req, res) => {
       const now = new Date();
       const activeBooking = await Booking.findOne({
         caregiver: caregiver._id,
-        user: patient.user,
+        user: patientUserId,
         status: { $in: ["assigned", "ongoing"] },
         startDate: { $lte: now },
         endDate: { $gte: now },
@@ -335,7 +369,7 @@ const getPatientLogs = asyncHandler(async (req, res) => {
     const Hospital = require("../models/Hospital");
     const hospital = await Hospital.findOne({ user: req.user._id });
     isHospitalAuthorized =
-      hospital && String(patient.assignedHospital) === String(hospital._id);
+      hospital && patient.assignedHospital && String(patient.assignedHospital) === String(hospital._id);
   }
 
   if (
@@ -350,7 +384,7 @@ const getPatientLogs = asyncHandler(async (req, res) => {
     throw new Error("Access denied to patient health logs");
   }
 
-  const filter = { patient: patientId };
+  const filter = { patient: patientUserId };
   if (startDate || endDate) {
     filter.logDate = {};
     if (startDate) filter.logDate.$gte = new Date(startDate);
@@ -384,22 +418,39 @@ const getPatientLogs = asyncHandler(async (req, res) => {
 const getLatestHealthSummary = asyncHandler(async (req, res) => {
   const { patientId } = req.params;
 
-  const patient = await Patient.findById(patientId);
+  let patient = await Patient.findById(patientId);
   if (!patient) {
-    res.status(404);
-    throw new Error("Patient not found");
+    patient = await Patient.findOne({ user: patientId });
   }
+
+  if (!patient) {
+    const userExists = await User.findById(patientId);
+    if (!userExists) {
+      res.status(404);
+      throw new Error("Patient not found");
+    }
+    patient = {
+      _id: null,
+      user: userExists._id,
+      name: userExists.name,
+    };
+  }
+
+  const patientUserId = patient.user?._id || patient.user;
 
   // Access control (reuse from getPatientLogs)
   const isAdmin = req.user.role === "admin";
-  const isOwner = String(patient.user) === String(req.user._id);
+  const isOwner = String(patientUserId) === String(req.user._id);
   const isDoctor = req.user.role === "doctor";
 
   let isFamilyAuthorized = false;
   if (req.user.role === "family") {
+    const patientDocId = patient._id;
+    const orQuery = [{ patient: patientUserId }];
+    if (patientDocId) orQuery.push({ patient: patientDocId });
     const fm = await FamilyMember.findOne({
       user: req.user._id,
-      patient: patientId,
+      $or: orQuery,
       canReceiveHealthReports: true,
     });
     isFamilyAuthorized = !!fm;
@@ -412,7 +463,7 @@ const getLatestHealthSummary = asyncHandler(async (req, res) => {
       const now = new Date();
       const activeBooking = await Booking.findOne({
         caregiver: caregiver._id,
-        user: patient.user,
+        user: patientUserId,
         status: { $in: ["assigned", "ongoing"] },
         startDate: { $lte: now },
         endDate: { $gte: now },
@@ -426,7 +477,7 @@ const getLatestHealthSummary = asyncHandler(async (req, res) => {
     const Hospital = require("../models/Hospital");
     const hospital = await Hospital.findOne({ user: req.user._id });
     isHospitalAuthorized =
-      hospital && String(patient.assignedHospital) === String(hospital._id);
+      hospital && patient.assignedHospital && String(patient.assignedHospital) === String(hospital._id);
   }
 
   if (
@@ -442,12 +493,12 @@ const getLatestHealthSummary = asyncHandler(async (req, res) => {
   }
 
   // Get latest log
-  const latestLog = await HealthLog.findOne({ patient: patientId })
+  const latestLog = await HealthLog.findOne({ patient: patientUserId })
     .populate("caregiver", "name profileImage")
     .sort({ logDate: -1 });
 
   // Get health profile
-  const profile = await HealthProfile.findOne({ patient: patientId });
+  const profile = await HealthProfile.findOne({ patient: patientUserId });
 
   // Get today's logs
   const today = new Date();
@@ -456,7 +507,7 @@ const getLatestHealthSummary = asyncHandler(async (req, res) => {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   const todayLogs = await HealthLog.find({
-    patient: patientId,
+    patient: patientUserId,
     logDate: { $gte: today, $lt: tomorrow },
   }).sort({ logDate: 1 });
 
@@ -464,7 +515,7 @@ const getLatestHealthSummary = asyncHandler(async (req, res) => {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   const abnormalThisWeek = await HealthLog.countDocuments({
-    patient: patientId,
+    patient: patientUserId,
     isAbnormal: true,
     logDate: { $gte: weekAgo },
   });
@@ -489,22 +540,39 @@ const getVitalTrends = asyncHandler(async (req, res) => {
   const since = new Date();
   since.setDate(since.getDate() - days);
 
-  const patient = await Patient.findById(patientId);
+  let patient = await Patient.findById(patientId);
   if (!patient) {
-    res.status(404);
-    throw new Error("Patient not found");
+    patient = await Patient.findOne({ user: patientId });
   }
+
+  if (!patient) {
+    const userExists = await User.findById(patientId);
+    if (!userExists) {
+      res.status(404);
+      throw new Error("Patient not found");
+    }
+    patient = {
+      _id: null,
+      user: userExists._id,
+      name: userExists.name,
+    };
+  }
+
+  const patientUserId = patient.user?._id || patient.user;
 
   // Access control
   const isAdmin = req.user.role === "admin";
-  const isOwner = String(patient.user) === String(req.user._id);
+  const isOwner = String(patientUserId) === String(req.user._id);
   const isDoctor = req.user.role === "doctor";
 
   let isFamilyAuthorized = false;
   if (req.user.role === "family") {
+    const patientDocId = patient._id;
+    const orQuery = [{ patient: patientUserId }];
+    if (patientDocId) orQuery.push({ patient: patientDocId });
     const fm = await FamilyMember.findOne({
       user: req.user._id,
-      patient: patientId,
+      $or: orQuery,
       canReceiveHealthReports: true,
     });
     isFamilyAuthorized = !!fm;
@@ -517,7 +585,7 @@ const getVitalTrends = asyncHandler(async (req, res) => {
       const now = new Date();
       const activeBooking = await Booking.findOne({
         caregiver: caregiver._id,
-        user: patient.user,
+        user: patientUserId,
         status: { $in: ["assigned", "ongoing"] },
         startDate: { $lte: now },
         endDate: { $gte: now },
@@ -531,7 +599,7 @@ const getVitalTrends = asyncHandler(async (req, res) => {
     const Hospital = require("../models/Hospital");
     const hospital = await Hospital.findOne({ user: req.user._id });
     isHospitalAuthorized =
-      hospital && String(patient.assignedHospital) === String(hospital._id);
+      hospital && patient.assignedHospital && String(patient.assignedHospital) === String(hospital._id);
   }
 
   if (
@@ -547,7 +615,7 @@ const getVitalTrends = asyncHandler(async (req, res) => {
   }
 
   const logs = await HealthLog.find({
-    patient: patientId,
+    patient: patientUserId,
     logDate: { $gte: since },
   })
     .select("logDate vitals mood isAbnormal medicationAdherence")
@@ -744,15 +812,29 @@ const createOrUpdateHealthProfile = asyncHandler(async (req, res) => {
     throw new Error("patientId is required");
   }
 
-  const patient = await Patient.findById(patientId);
+  let patient = await Patient.findById(patientId);
   if (!patient) {
-    res.status(404);
-    throw new Error("Patient not found");
+    patient = await Patient.findOne({ user: patientId });
   }
+
+  if (!patient) {
+    const userExists = await User.findById(patientId);
+    if (!userExists) {
+      res.status(404);
+      throw new Error("Patient not found");
+    }
+    patient = {
+      _id: null,
+      user: userExists._id,
+      name: userExists.name,
+    };
+  }
+
+  const patientUserId = patient.user?._id || patient.user;
 
   // Only patient owner or admin
   const isAdmin = req.user.role === "admin";
-  const isOwner = String(patient.user) === String(req.user._id);
+  const isOwner = String(patientUserId) === String(req.user._id);
 
   if (!isAdmin && !isOwner) {
     res.status(403);
@@ -760,7 +842,7 @@ const createOrUpdateHealthProfile = asyncHandler(async (req, res) => {
   }
 
   const profile = await HealthProfile.findOneAndUpdate(
-    { patient: patientId },
+    { patient: patientUserId },
     {
       currentMedications,
       pastSurgeries,
@@ -779,22 +861,36 @@ const createOrUpdateHealthProfile = asyncHandler(async (req, res) => {
 const getHealthProfile = asyncHandler(async (req, res) => {
   const { patientId } = req.params;
 
-  const patient = await Patient.findById(patientId);
+  let patient = await Patient.findById(patientId);
   if (!patient) {
-    res.status(404);
-    throw new Error("Patient not found");
+    patient = await Patient.findOne({ user: patientId });
   }
+
+  if (!patient) {
+    const userExists = await User.findById(patientId);
+    if (!userExists) {
+      res.status(404);
+      throw new Error("Patient not found");
+    }
+    patient = {
+      _id: null,
+      user: userExists._id,
+      name: userExists.name,
+    };
+  }
+
+  const patientUserId = patient.user?._id || patient.user;
 
   // Access control
   const isAdmin = req.user.role === "admin";
-  const isOwner = String(patient.user) === String(req.user._id);
+  const isOwner = String(patientUserId) === String(req.user._id);
   const isDoctor = req.user.role === "doctor";
 
   let isFamilyAuthorized = false;
   if (req.user.role === "family") {
     const fm = await FamilyMember.findOne({
       user: req.user._id,
-      patient: patientId,
+      patient: patientUserId,
       canReceiveHealthReports: true,
     });
     isFamilyAuthorized = !!fm;
@@ -805,7 +901,7 @@ const getHealthProfile = asyncHandler(async (req, res) => {
     throw new Error("Access denied to health profile");
   }
 
-  const profile = await HealthProfile.findOne({ patient: patientId }).populate(
+  const profile = await HealthProfile.findOne({ patient: patientUserId }).populate(
     "patient",
     "name profileImage",
   );

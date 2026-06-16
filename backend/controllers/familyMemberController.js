@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const FamilyMember = require('../models/FamilyMember');
 const User = require('../models/User');
+const Patient = require('../models/Patient');
 const { successResponse, paginatedResponse } = require('../utils/responseHandler');
 const { paginate } = require('../utils/paginate');
 
@@ -195,13 +196,20 @@ const getMyPatient = asyncHandler(async (req, res) => {
     throw new Error('No patient is linked to this family account');
   }
 
-  const patient = await User.findById(fm.patient);
-  if (!patient) {
+  let patientUser = await User.findById(fm.patient);
+  if (!patientUser) {
+    const patientDoc = await Patient.findById(fm.patient);
+    if (patientDoc) {
+      patientUser = await User.findById(patientDoc.user);
+    }
+  }
+
+  if (!patientUser) {
     res.status(404);
     throw new Error('Linked patient profile not found');
   }
 
-  successResponse(res, 200, 'Linked patient fetched successfully', patient);
+  successResponse(res, 200, 'Linked patient fetched successfully', patientUser);
 });
 
 // ─── Get Family Dashboard Stats ────────────────────────────────────────────────
@@ -212,12 +220,18 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   }
 
   const patientId = familyMember.patient;
-  const patient = await User.findById(patientId);
+  let patientUserId = patientId;
+  const patientDoc = await Patient.findById(patientId);
+  if (patientDoc) {
+    patientUserId = patientDoc.user;
+  }
+  
+  const patient = await User.findById(patientUserId);
 
   // 1. Next Upcoming Booking
   const Booking = require('../models/Booking');
   const nextBooking = await Booking.findOne({
-    user: patient?._id,
+    user: patientUserId,
     status: { $in: ['assigned', 'ongoing'] }
   })
     .sort({ startDate: 1, startTime: 1 })
@@ -226,7 +240,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   // 2. Recent Abnormal Health Logs
   const HealthLog = require('../models/HealthLog');
   const recentHealthAlerts = await HealthLog.countDocuments({
-    patient: patientId,
+    patient: patientUserId,
     isAbnormal: true,
     logDate: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
   });
@@ -238,7 +252,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const pendingMedications = await MedicationLog.countDocuments({
-    patient: patientId,
+    patient: patientUserId,
     status: 'pending',
     scheduledTime: { $gte: today, $lt: tomorrow }
   });
@@ -246,7 +260,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   // 4. Active Emergencies
   const EmergencyIncident = require('../models/EmergencyIncident');
   const activeEmergencies = await EmergencyIncident.countDocuments({
-    patient: patientId,
+    patient: patientUserId,
     status: { $in: ['active', 'acknowledged', 'responding'] }
   });
 

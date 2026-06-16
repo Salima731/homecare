@@ -13,7 +13,8 @@ import { useSendMessageMutation } from '../../../features/messages/messageApiSli
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
-import { MessageSquare, X, Send } from 'lucide-react';
+import { MessageSquare, X, Send, AlertTriangle } from 'lucide-react';
+import RaiseEmergencyModal from '../../../components/dashboard/RaiseEmergencyModal';
 
 const CaregiverJobs = () => {
   const { data: response, isLoading, error, refetch } = useGetCaregiverBookingsQuery();
@@ -30,6 +31,8 @@ const CaregiverJobs = () => {
   const [showMessageModal, setShowMessageModal] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState(null);
   const [messageText, setMessageText] = React.useState('');
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = React.useState(false);
+  const [selectedEmergencyBooking, setSelectedEmergencyBooking] = React.useState(null);
 
   const handleOpenMessage = (user) => {
     setSelectedUser(user);
@@ -195,13 +198,21 @@ const CaregiverJobs = () => {
                     </button>
                   )}
                   {booking.status === 'ongoing' && (
-                    <button 
-                      onClick={() => handleClockOut(booking._id)}
-                      disabled={isClockingOut}
-                      className="btn btn-primary bg-red-600 hover:bg-red-700 border-none w-full flex items-center justify-center gap-2 py-3"
-                    >
-                      <Square size={18} fill="currentColor" /> Clock Out
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => { setSelectedEmergencyBooking(booking); setIsEmergencyModalOpen(true); }}
+                        className="btn bg-red-600 hover:bg-red-700 text-white border-none w-full flex items-center justify-center gap-2 py-3 shadow-lg shadow-red-600/20 font-bold"
+                      >
+                        <AlertTriangle size={18} /> Emergency
+                      </button>
+                      <button 
+                        onClick={() => handleClockOut(booking._id)}
+                        disabled={isClockingOut}
+                        className="btn btn-primary bg-green-600 hover:bg-green-700 border-none w-full flex items-center justify-center gap-2 py-3 font-bold"
+                      >
+                        <Square size={18} fill="currentColor" /> Clock Out
+                      </button>
+                    </>
                   )}
                   {booking.status === 'completed' && (
                     <div className="flex items-center justify-center gap-2 text-green-600 font-bold">
@@ -288,6 +299,15 @@ const CaregiverJobs = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <RaiseEmergencyModal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => {
+          setIsEmergencyModalOpen(false);
+          setSelectedEmergencyBooking(null);
+        }}
+        booking={selectedEmergencyBooking}
+      />
     </div>
   );
 };

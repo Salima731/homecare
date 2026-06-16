@@ -1,9 +1,12 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../../../features/auth/authSlice';
 import {
   ArrowLeft, User, Phone, Mail, Heart, AlertTriangle,
   Calendar, Droplet, Shield, MapPin, Activity, UserCheck, Clock,
+  FolderOpen, Plus
 } from 'lucide-react';
 import { useGetPatientByIdQuery } from '../../../../features/hospitals/hospitalApiSlice';
 import LoadingSpinner from '../../../../components/common/LoadingSpinner';
@@ -33,6 +36,7 @@ const Field = ({ label, value, mono = false }) => (
 const PatientDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const user = useSelector(selectCurrentUser);
   const { data: response, isLoading, isError } = useGetPatientByIdQuery(id);
 
   const patient = response?.data;
@@ -67,16 +71,35 @@ const PatientDetail = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 p-2">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-xl border border-[var(--border-main)] hover:bg-[var(--bg-main)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-main)]"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h1 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Patient Details</h1>
-          <p className="text-[var(--text-muted)] font-medium text-sm">Full medical profile and admission info</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-xl border border-[var(--border-main)] hover:bg-[var(--bg-main)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-main)]"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Patient Details</h1>
+            <p className="text-[var(--text-muted)] font-medium text-sm">Full medical profile and admission info</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/dashboard/${user?.role}/medical-records?patientId=${patient._id}`)}
+            className="btn btn-outline border-indigo-200 text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl"
+          >
+            <FolderOpen size={16} /> View Records
+          </button>
+          {['doctor', 'hospital'].includes(user?.role) && (
+            <button
+              onClick={() => navigate(`/dashboard/${user?.role}/medical-records/upload?patientId=${patient._id}`)}
+              className="btn btn-primary bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-md flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl"
+            >
+              <Plus size={16} /> Upload Record
+            </button>
+          )}
         </div>
       </div>
 
@@ -110,17 +133,17 @@ const PatientDetail = () => {
               </span>
             </div>
             <div className="flex flex-wrap gap-4 text-sm text-[var(--text-muted)] mt-2">
-              {patient.user?.email && (
-                <span className="flex items-center gap-1.5"><Mail size={13} />{patient.user.email}</span>
+              {patient.email && (
+                <span className="flex items-center gap-1.5"><Mail size={13} />{patient.email}</span>
               )}
-              {patient.user?.phone && (
-                <span className="flex items-center gap-1.5"><Phone size={13} />{patient.user.phone}</span>
+              {patient.phone && (
+                <span className="flex items-center gap-1.5"><Phone size={13} />{patient.phone}</span>
               )}
               {age && (
                 <span className="flex items-center gap-1.5"><Calendar size={13} />{age} years old</span>
               )}
               {patient.gender && (
-                <span className="flex items-center gap-1.5"><User size={13} capitalize>{patient.gender}</User>{patient.gender}</span>
+                <span className="flex items-center gap-1.5"><User size={13} />{patient.gender}</span>
               )}
             </div>
           </div>

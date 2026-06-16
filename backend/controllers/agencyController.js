@@ -326,6 +326,9 @@ const getAgencyReferrals = asyncHandler(async (req, res) => {
     assignedAgency: agency._id
   })
     .populate('patient', 'name email')
+    .populate('assignedCaregiver', 'name serviceType')
+    .populate('hospital', 'hospitalName')
+    .populate('booking', '_id status')
     .sort('-createdAt');
 
   res.json({
@@ -336,16 +339,14 @@ const getAgencyReferrals = asyncHandler(async (req, res) => {
 const assignReferralCaregiver = asyncHandler(async (req, res) => {
   const { caregiverId } = req.body;
 
-  const referral = await PatientReferral.findById(req.params.id);
+  const referral = await PatientReferral.findById(req.params.id).populate('patient');
 
   if (!referral) {
     res.status(404);
     throw new Error('Referral not found');
   }
 
-  const agency = await Agency.findOne({
-    user: req.user._id,
-  });
+  const agency = await Agency.findOne({ user: req.user._id });
 
   if (!agency) {
     res.status(404);
@@ -359,15 +360,53 @@ const assignReferralCaregiver = asyncHandler(async (req, res) => {
     throw new Error('Caregiver not found');
   }
 
-  referral.assignedCaregiver = caregiver._id;
-  referral.status = 'accepted';
+  // Auto-create a Booking so the caregiver can clock in/out
+  const startDate = referral.dischargeDate || new Date();
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 30); // Default 30-day care window
 
+  const dailyRate = caregiver.rates?.daily || 0;
+
+  const booking = await Booking.create({
+    user: referral.patient._id,
+    caregiver: caregiver._id,
+    agency: agency._id,
+    serviceType: referral.serviceType || 'nurse',
+    durationType: 'daily',
+    startDate,
+    endDate,
+    rateApplied: dailyRate,
+    totalAmount: 0,          // Hospital referral – payment handled externally
+    platformCommission: 0,
+    agencyAmount: 0,
+    status: 'assigned',      // Directly assignable – no acceptance step
+    paymentStatus: 'paid',   // Bypass payment flow for hospital referrals
+    isPaid: true,
+    specialInstructions: referral.homeCarePlan || '',
+  });
+
+  // Link booking back to the referral and advance status
+  referral.assignedCaregiver = caregiver._id;
+  referral.booking = booking._id;
+  referral.status = 'in_progress';
   await referral.save();
+
+  // Notify caregiver
+  if (req.io) {
+    await createNotification(req.io, {
+      recipient: caregiver.user,
+      type: 'booking_assigned',
+      title: 'New Hospital Referral Job',
+      message: `You have been assigned to a hospital referral booking (${booking.serviceType}).`,
+      data: { bookingId: booking._id },
+    });
+  }
 
   res.status(200).json({
     success: true,
-    message: 'Caregiver assigned successfully',
+    message: 'Caregiver assigned and booking created successfully',
     referral,
+    booking,
   });
 });
 module.exports = {

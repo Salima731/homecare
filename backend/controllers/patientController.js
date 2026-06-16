@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
+const Patient = require('../models/Patient');
 const { successResponse, paginatedResponse } = require('../utils/responseHandler');
 const { paginate } = require('../utils/paginate');
 const { uploadAvatar, deleteFromCloudinary } = require('../services/cloudinaryService');
@@ -123,34 +125,99 @@ const getAllPatients = asyncHandler(async (req, res) => {
 // ─── Get Patient By ID ────────────────────────────────────────────────────────
 // GET /api/patients/:id
 const getPatientById = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id)
-    .populate('assignedCaregiver', 'name profileImage')
-    .populate('assignedHospital', 'name')
-    .populate('assignedDoctor', 'name')
-    .populate('familyMembers', 'name relationship phone');
+  let patientDoc = null;
+  let userDoc = null;
 
-  if (!user) {
+  // 1. Try to find patient by ID in Patient collection
+  if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+    patientDoc = await Patient.findById(req.params.id)
+      .populate('user', 'name email phone avatar')
+      .populate('assignedCaregiver', 'name profileImage')
+      .populate('assignedHospital', 'hospitalName name')
+      .populate('assignedDoctor', 'name')
+      .populate('familyMembers', 'name relationship phone');
+  }
+
+  // 2. If not found in Patient collection, check if it's a User ID that has a Patient profile
+  if (!patientDoc && mongoose.Types.ObjectId.isValid(req.params.id)) {
+    patientDoc = await Patient.findOne({ user: req.params.id })
+      .populate('user', 'name email phone avatar')
+      .populate('assignedCaregiver', 'name profileImage')
+      .populate('assignedHospital', 'hospitalName name')
+      .populate('assignedDoctor', 'name')
+      .populate('familyMembers', 'name relationship phone');
+  }
+
+  // 3. If STILL not found, let's see if a User document exists with this ID (fallback for users without Patient profiles)
+  if (!patientDoc && mongoose.Types.ObjectId.isValid(req.params.id)) {
+    userDoc = await User.findById(req.params.id)
+      .populate('assignedCaregiver', 'name profileImage')
+      .populate('assignedHospital', 'hospitalName name')
+      .populate('assignedDoctor', 'name')
+      .populate('familyMembers', 'name relationship phone');
+  }
+
+  if (!patientDoc && !userDoc) {
     res.status(404);
     throw new Error('Patient not found');
+  }
+
+  // Determine the patient object to return, ensuring it satisfies both models
+  let result = null;
+  let userId = null;
+  let patientId = null;
+  let assignedCaregiverId = null;
+
+  if (patientDoc) {
+    userId = patientDoc.user?._id || patientDoc.user;
+    patientId = patientDoc._id;
+    assignedCaregiverId = patientDoc.assignedCaregiver?._id || patientDoc.assignedCaregiver;
+
+    // Build unified response structure
+    result = patientDoc.toObject();
+    
+    // Copy/fallback user details to top level for components that expect them there
+    if (patientDoc.user) {
+      result.email = patientDoc.user.email || '';
+      result.phone = patientDoc.user.phone || '';
+      result.avatar = patientDoc.user.avatar || { url: '', publicId: '' };
+      result.name = patientDoc.name || patientDoc.user.name;
+    }
+  } else {
+    // Fallback to User document
+    userId = userDoc._id;
+    patientId = userDoc._id; // Fallback patient ID to user ID
+    assignedCaregiverId = userDoc.assignedCaregiver?._id || userDoc.assignedCaregiver;
+
+    result = userDoc.toObject();
+    result.user = userDoc.toObject(); // Set user property for components that expect patient.user.*
   }
 
   // Access control
   const isAdmin = req.user.role === 'admin';
   const isDoctor = req.user.role === 'doctor';
   const isHospital = req.user.role === 'hospital';
-  const isOwner = String(user._id) === String(req.user._id);
+  const isOwner = String(userId) === String(req.user._id);
 
   let isCaregiver = false;
   if (req.user.role === 'caregiver') {
     const Caregiver = require('../models/Caregiver');
     const cg = await Caregiver.findOne({ user: req.user._id });
-    if (cg && String(user.assignedCaregiver) === String(cg._id)) isCaregiver = true;
+    if (cg && assignedCaregiverId && String(assignedCaregiverId) === String(cg._id)) {
+      isCaregiver = true;
+    }
   }
 
   let isFamily = false;
   if (req.user.role === 'family') {
     const FamilyMember = require('../models/FamilyMember');
-    const fm = await FamilyMember.findOne({ user: req.user._id, patient: user._id });
+    const fm = await FamilyMember.findOne({
+      user: req.user._id,
+      $or: [
+        { patient: patientId },
+        { patient: userId }
+      ]
+    });
     if (fm) isFamily = true;
   }
 
@@ -159,7 +226,7 @@ const getPatientById = asyncHandler(async (req, res) => {
     throw new Error('Access denied to patient details');
   }
 
-  successResponse(res, 200, 'Patient details fetched', user);
+  successResponse(res, 200, 'Patient details fetched', result);
 });
 
 // ─── Search Patients (Hospital — for Admission) ───────────────────────────────

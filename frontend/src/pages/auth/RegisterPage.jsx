@@ -179,6 +179,7 @@ const RegisterPage = () => {
                   <option value="agency">Agency (Providing Care)</option>
                   <option value="caregiver">Caregiver (Providing Care)</option>
                   <option value="hospital">Hospital</option>
+                  <option value="family">Family Member (Monitoring a Patient)</option>
                 </select>
               </div>
             </div>

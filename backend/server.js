@@ -37,6 +37,9 @@ const attendanceRoutes = require("./routes/attendanceRoutes");
 const prescriptionRoutes = require("./routes/prescriptionRoutes");
 const medicationRoutes = require("./routes/medicationRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
+const careReportRoutes = require("./routes/careReportRoutes");
+const medicalRecordRoutes = require("./routes/medicalRecordRoutes");
+const emergencyAlertRoutes = require("./routes/emergencyAlertRoutes");
 
 // Cron Jobs
 const { startBookingStatusJob } = require("./jobs/bookingStatusJob");
@@ -113,6 +116,9 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
 app.use("/api/medications", medicationRoutes);
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/care-reports", careReportRoutes);
+app.use("/api/medical-records", medicalRecordRoutes);
+app.use("/api/emergency-alerts", emergencyAlertRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {

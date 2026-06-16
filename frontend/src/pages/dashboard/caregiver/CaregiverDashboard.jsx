@@ -8,6 +8,7 @@ import { useClockInMutation, useClockOutMutation } from '../../../features/booki
 import { useSetAvailabilityMutation } from '../../../features/schedules/scheduleApiSlice';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { toast } from 'react-hot-toast';
+import RaiseEmergencyModal from '../../../components/dashboard/RaiseEmergencyModal';
 
 const CaregiverDashboard = () => {
   const user = useSelector(selectCurrentUser);
@@ -25,6 +26,8 @@ const CaregiverDashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isAvailable, setIsAvailable] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [selectedEmergencyBooking, setSelectedEmergencyBooking] = useState(null);
   
   const data = response?.data;
   const todaysBookings = data?.todaysBookings || [];
@@ -221,13 +224,21 @@ const CaregiverDashboard = () => {
                       </button>
                     )}
                     {booking.status === 'ongoing' && (
-                      <button 
-                        onClick={() => handleAction('Clock Out', booking._id)} 
-                        disabled={isClockingOut}
-                        className="btn btn-primary px-6 py-2 text-xs bg-green-600 hover:bg-green-700 border-none shadow-lg shadow-green-600/20"
-                      >
-                        {isClockingOut ? 'Clocking out...' : 'Clock Out'}
-                      </button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => { setSelectedEmergencyBooking(booking); setIsEmergencyModalOpen(true); }}
+                          className="btn bg-red-600 hover:bg-red-700 text-white border-none px-4 py-2 text-xs shadow-lg shadow-red-600/20 flex items-center gap-1"
+                        >
+                          <AlertTriangle size={14} /> Emergency
+                        </button>
+                        <button 
+                          onClick={() => handleAction('Clock Out', booking._id)} 
+                          disabled={isClockingOut}
+                          className="btn btn-primary px-6 py-2 text-xs bg-green-600 hover:bg-green-700 border-none shadow-lg shadow-green-600/20"
+                        >
+                          {isClockingOut ? 'Clocking out...' : 'Clock Out'}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -424,6 +435,15 @@ const CaregiverDashboard = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <RaiseEmergencyModal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => {
+          setIsEmergencyModalOpen(false);
+          setSelectedEmergencyBooking(null);
+        }}
+        booking={selectedEmergencyBooking}
+      />
     </div>
   );
 };

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { 
-  LayoutDashboard, User, Calendar, History, 
-  Settings, LogOut, Bell, Menu, X, 
+import {
+  LayoutDashboard, User, Calendar, History,
+  Settings, LogOut, Bell, Menu, X,
   ChevronRight, Users, Shield, Star, DollarSign,
   AlertCircle, MessageSquare, Heart, Search,
   Building2, FileText, ClipboardList, Stethoscope,
-  HeartHandshake
+  HeartHandshake, FolderOpen, Pill
 } from 'lucide-react';
 import { logOut, selectCurrentUser } from '../features/auth/authSlice';
 
@@ -38,13 +38,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { name: 'Users', icon: <Shield size={20} />, path: '/dashboard/admin/users' },
           { name: 'Bookings', icon: <Calendar size={20} />, path: '/dashboard/admin/bookings' },
           { name: 'Appointments', icon: <ClipboardList size={20} />, path: '/dashboard/admin/appointments' },
-          {
-  name: 'Caregivers',
-  icon: <Users size={20} />,
-  path: '/dashboard/admin/caregivers'
-},
+          { name: 'Caregivers', icon: <Users size={20} />, path: '/dashboard/admin/caregivers' },
+          { name: 'Medical Records', icon: <FolderOpen size={20} />, path: '/dashboard/admin/medical-records' },
           { name: 'Payments', icon: <DollarSign size={20} />, path: '/dashboard/admin/payments' },
           { name: 'Complaints', icon: <AlertCircle size={20} />, path: '/dashboard/admin/complaints' },
+          { name: 'Emergency Alerts', icon: <AlertCircle size={20} />, path: '/dashboard/admin/emergency-alerts' },
           ...commonItems
         ];
       case 'agency':
@@ -55,7 +53,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { name: 'Earnings', icon: <DollarSign size={20} />, path: '/dashboard/agency/earnings' },
           { name: 'Messages', icon: <MessageSquare size={20} />, path: '/dashboard/agency/messages' },
           { name: 'Referrals', icon: <HeartHandshake size={20} />, path: '/dashboard/agency/referrals' },
-          
+          { name: 'Emergency Alerts', icon: <AlertCircle size={20} />, path: '/dashboard/agency/emergency-alerts' },
           ...commonItems
         ];
       case 'caregiver':
@@ -63,22 +61,27 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { name: 'Schedule', icon: <Calendar size={20} />, path: '/dashboard/caregiver' },
           { name: 'Assigned Jobs', icon: <History size={20} />, path: '/dashboard/caregiver/jobs' },
           { name: 'Health Monitoring', icon: <Heart size={20} />, path: '/dashboard/caregiver/health' },
+          { name: 'Medications', icon: <Pill size={20} />, path: '/dashboard/caregiver/medications' },
           { name: 'Prescriptions', icon: <FileText size={20} />, path: '/dashboard/caregiver/prescriptions' },
+          { name: 'Daily Reports', icon: <ClipboardList size={20} />, path: '/dashboard/caregiver/care-reports' },
+          { name: 'Medical Records', icon: <FolderOpen size={20} />, path: '/dashboard/caregiver/medical-records' },
           { name: 'Earnings', icon: <DollarSign size={20} />, path: '/dashboard/caregiver/earnings' },
           { name: 'Messages', icon: <MessageSquare size={20} />, path: '/dashboard/caregiver/messages' },
           { name: 'Reviews', icon: <Star size={20} />, path: '/dashboard/caregiver/reviews' },
+          { name: 'Emergency Alerts', icon: <AlertCircle size={20} />, path: '/dashboard/caregiver/emergency-alerts' },
           ...commonItems
         ];
       case 'hospital':
         return [
           { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/hospital' },
+          { name: 'Patients', icon: <Users size={20} />, path: '/dashboard/hospital/patients' },
           { name: 'Departments', icon: <Shield size={20} />, path: '/dashboard/hospital/departments' },
           { name: 'Doctors', icon: <Stethoscope size={20} />, path: '/dashboard/hospital/doctors' },
           { name: 'Appointments', icon: <Calendar size={20} />, path: '/dashboard/hospital/appointments' },
-          { name: 'Prescriptions', icon: <FileText size={20} />, path: '/dashboard/hospital/prescriptions' },
-          { name: 'Patients', icon: <Heart size={20} />, path: '/dashboard/hospital/patients' },
+          { name: 'Agencies', icon: <Building2 size={20} />, path: '/dashboard/hospital/agencies' },
+          { name: 'Medical Records', icon: <FolderOpen size={20} />, path: '/dashboard/hospital/medical-records' },
           { name: 'Referrals', icon: <ClipboardList size={20} />, path: '/dashboard/hospital/referrals' },
-          // { name: 'Emergencies', icon: <AlertCircle size={20} />, path: '/dashboard/hospital/emergencies' },
+          { name: 'Emergency Alerts', icon: <AlertCircle size={20} />, path: '/dashboard/hospital/emergency-alerts' },
           ...commonItems
         ];
       case 'family':
@@ -86,23 +89,23 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/family' },
           { name: 'Patient Overview', icon: <User size={20} />, path: '/dashboard/family/patient' },
           { name: 'Health Reports', icon: <Heart size={20} />, path: '/dashboard/family/health' },
+          { name: 'Care Reports', icon: <ClipboardList size={20} />, path: '/dashboard/family/care-reports' },
+          { name: 'Medical Records', icon: <FolderOpen size={20} />, path: '/dashboard/family/medical-records' },
           { name: 'Medications', icon: <History size={20} />, path: '/dashboard/family/medications' },
-          
           { name: 'Bookings', icon: <Calendar size={20} />, path: '/dashboard/family/bookings' },
-          { name: 'Emergencies', icon: <AlertCircle size={20} />, path: '/dashboard/family/emergencies' },
-          { name: 'Messages', icon: <MessageSquare size={20} />, path: '/dashboard/family/messages' },
+          { name: 'Emergency Alerts', icon: <AlertCircle size={20} />, path: '/dashboard/family/emergency-alerts' },
           ...commonItems
         ];
-        
       case 'doctor':
         return [
           { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/doctor' },
           { name: 'Appointments', icon: <Calendar size={20} />, path: '/dashboard/doctor/appointments' },
+          { name: 'Schedules', icon: <Calendar size={20} />, path: '/dashboard/doctor/schedules' },
           { name: 'Patients', icon: <Users size={20} />, path: '/dashboard/doctor/patients' },
+          { name: 'Medical Records', icon: <FolderOpen size={20} />, path: '/dashboard/doctor/medical-records' },
           { name: 'Prescriptions', icon: <FileText size={20} />, path: '/dashboard/doctor/prescriptions' },
           ...commonItems
         ];
-
       case 'user':
       default:
         return [
@@ -111,11 +114,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           { name: 'Find Doctors', icon: <Search size={20} />, path: '/dashboard/user/doctors' },
           { name: 'My Favorites', icon: <Heart size={20} />, path: '/dashboard/user/favorites' },
           { name: 'My Bookings', icon: <ClipboardList size={20} />, path: '/dashboard/user/bookings' },
-          { name: 'Doctor Appointments', icon: <Calendar size={20} />, path: '/dashboard/user/appointments' },
+          { name: 'Health Tracking', icon: <Heart size={20} />, path: '/dashboard/user/health' },
           { name: 'Prescriptions', icon: <FileText size={20} />, path: '/dashboard/user/prescriptions' },
-          { name: 'Payments', icon: <DollarSign size={20} />, path: '/dashboard/user/payments' },
+          { name: 'Medical Records', icon: <FolderOpen size={20} />, path: '/dashboard/user/medical-records' },
           { name: 'Complaints', icon: <AlertCircle size={20} />, path: '/dashboard/user/complaints' },
           { name: 'Messages', icon: <MessageSquare size={20} />, path: '/dashboard/user/messages' },
+          { name: 'Emergency Alerts', icon: <AlertCircle size={20} />, path: '/dashboard/user/emergency-alerts' },
           ...commonItems
         ];
     }
@@ -154,11 +158,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  isActive 
-                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20' 
-                  : 'text-[var(--text-muted)] hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20'
-                }`}
+                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20'
+                    : 'text-[var(--text-muted)] hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20'
+                  }`}
                 onClick={() => window.innerWidth < 1024 && toggleSidebar()}
               >
                 <div className="flex items-center gap-3">
